@@ -13,17 +13,13 @@ COPY . .
 RUN GOOS=linux GOARCH=amd64 make build
 
 # run the binary
-FROM scratch
+FROM alpine:latest
 
-ENV PORT 8080
-
-COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /etc/passwd /etc/passwd
 
 USER gopher
 
-COPY --from=build /go/src/goss/migrations /migrations
-COPY --from=build /go/src/goss/bin/wotbot /wotbot
+COPY --from=build /go/src/wotbot/migrations /migrations
+COPY --from=build /go/src/wotbot/bin/wotbot /wotbot
 
-EXPOSE $PORT
 CMD ["/wotbot"]

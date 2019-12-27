@@ -14,11 +14,13 @@ import (
 
 type adapter struct {
 	logger *zap.Logger
+	config *Config
 }
 
-func NewAdapter(logger *zap.Logger) domain.XVM {
+func NewAdapter(logger *zap.Logger, config *Config) domain.XVM {
 	a := &adapter{
 		logger: logger,
+		config: config,
 	}
 
 	return a
@@ -76,8 +78,9 @@ func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error
 
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-
-		ctx, cancel = chromedp.NewContext(timeoutCtx)
+		remoteAllocatorCtx, cancel := chromedp.NewRemoteAllocator(timeoutCtx, a.config.ChromeDevtoolsURL)
+		defer cancel()
+		ctx, cancel = chromedp.NewContext(remoteAllocatorCtx)
 		defer cancel()
 
 		if err := chromedp.Run(ctx, tt); err != nil {

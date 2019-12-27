@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  wotbot:
+    build: .
+    env_file:
+      - ./configs/wotbot.env
+
+  postgres:
+    image: postgres
+
+  chromedp:
+    image: chromedp/headless-shell
+    command: --disable-gpu
+    shm_size: '2gb'
