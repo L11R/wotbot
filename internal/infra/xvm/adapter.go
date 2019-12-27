@@ -2,6 +2,7 @@ package xvm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/chromedp/chromedp"
 	"net/http"
@@ -78,7 +79,11 @@ func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error
 
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		remoteAllocatorCtx, cancel := chromedp.NewRemoteAllocator(timeoutCtx, a.config.ChromeDevtoolsURL)
+		debuggerURL, err := a.getWebSocketDebuggerURL()
+		if err != nil {
+			return nil, err
+		}
+		remoteAllocatorCtx, cancel := chromedp.NewRemoteAllocator(timeoutCtx, debuggerURL)
 		defer cancel()
 		ctx, cancel = chromedp.NewContext(remoteAllocatorCtx)
 		defer cancel()
@@ -90,4 +95,38 @@ func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error
 	}
 
 	return ss, nil
+}
+
+func (a *adapter) getWebSocketDebuggerURL() (string, error) {
+	// Request
+	req, err := http.NewRequest(http.MethodGet, a.config.ChromeDevtoolsURL, nil)
+	if err != nil {
+		a.logger.Error("Error creating new Chrome Devtools request!", zap.Error(err))
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req = req.WithContext(ctx)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		a.logger.Error("Error doing XVM stats request!", zap.Error(err))
+		return "", domain.ErrInternalXVM
+	}
+	defer resp.Body.Close()
+
+	var target []struct {
+		WebSocketDebuggerURL string `json:"webSocketDebuggerUrl"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&target); err != nil {
+		a.logger.Error("Error decoding Chrome Devtools response!", zap.Error(err))
+		return "", domain.ErrInternalXVM
+	}
+
+	if len(target) != 1 {
+		a.logger.Error("Received an empty targets array!")
+		return "", domain.ErrInternalXVM
+	}
+
+	return target[0].WebSocketDebuggerURL, nil
 }

@@ -5,15 +5,18 @@ services:
     build: .
     env_file:
       - ./configs/wotbot.env
-    restart: always
     depends_on:
       - postgres
       - chromedp
 
   postgres:
     image: postgres
+    ports:
+      - 5432:5432
 
   chromedp:
     image: chromedp/headless-shell
     command: --disable-gpu
     shm_size: '2gb'
+    ports:
+      - 9222:9222
