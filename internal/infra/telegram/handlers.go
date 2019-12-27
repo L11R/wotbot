@@ -2,11 +2,11 @@ package telegram
 
 import (
 	"errors"
-	"strings"
-
 	"github.com/L11R/wotbot/internal/domain"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"go.uber.org/zap"
+	"strings"
+	"time"
 )
 
 func (a *adapter) route(u *tgbotapi.Update) {
@@ -14,191 +14,207 @@ func (a *adapter) route(u *tgbotapi.Update) {
 		return
 	}
 
+	var (
+		sentMsg *tgbotapi.Message
+		err     error
+	)
+
+	defer func(err *error) {
+		if err != nil && *err != nil {
+			sentMsg = a.error(u, *err)
+		}
+
+		if u.Message.Chat.Type == "supergroup" {
+			// Pass copies to goroutine
+			go func(update tgbotapi.Update, msg tgbotapi.Message) {
+				ticker := time.NewTicker(10 * time.Second)
+				<-ticker.C
+				a.deleteMessage(update.Message.Chat.ID, update.Message.MessageID)
+				a.deleteMessage(msg.Chat.ID, msg.MessageID)
+			}(*u, *sentMsg)
+		}
+	}(&err)
+
 	switch u.Message.Command() {
 	case "start":
-		if err := a.handleStart(u); err != nil {
-			a.error(u, err)
-		}
+		sentMsg, err = a.handleStart(u)
 	case "get":
-		if err := a.handleGet(u); err != nil {
-			a.error(u, err)
-		}
+		sentMsg, err = a.handleGet(u)
 	case "save":
-		if err := a.handleSave(u); err != nil {
-			a.error(u, err)
-		}
+		sentMsg, err = a.handleSave(u)
 	case "me":
-		if err := a.handleMe(u); err != nil {
-			a.error(u, err)
-		}
+		sentMsg, err = a.handleMe(u)
 	case "refresh":
-		if err := a.handleRefresh(u); err != nil {
-			a.error(u, err)
-		}
+		sentMsg, err = a.handleRefresh(u)
 	default:
-		if strings.HasSuffix(u.Message.Command(), "Trend") {
-			if err := a.handleTrend(u); err != nil {
-
-			}
+		if strings.HasSuffix(u.Message.Command(), "Trend") ||
+			strings.Contains(u.Message.Command(), "ByVehicle") {
+			sentMsg, err = a.handleTrend(u)
 		}
 	}
 }
 
-func (a *adapter) handleStart(u *tgbotapi.Update) error {
+func (a *adapter) handleStart(u *tgbotapi.Update) (*tgbotapi.Message, error) {
 	text, err := a.service.GetCreateUserMessage(u.Message.From.ID)
 	if err != nil {
 		if errors.Is(err, domain.ErrInternalDatabase) {
-			return newHRError("Ошибка при работе с базой! Обратитесь к администратору бота.", err)
+			return nil, newHRError("Ошибка при работе с базой! Обратитесь к администратору бота.", err)
 		}
 
-		return newHRError("Произошла неизвестная ошибка!", err)
+		return nil, newHRError("Произошла неизвестная ошибка!", err)
 	}
 
 	msg := tgbotapi.NewMessage(u.Message.Chat.ID, text)
 	msg.ParseMode = "HTML"
-	if _, err := a.botAPI.Send(msg); err != nil {
-		return newHRError("Невозможно отправить сообщение!", err)
+	sentMsg, err := a.botAPI.Send(msg)
+	if err != nil {
+		return nil, newHRError("Невозможно отправить сообщение!", err)
 	}
 
-	return nil
+	return &sentMsg, nil
 }
 
-func (a *adapter) handleGet(u *tgbotapi.Update) error {
+func (a *adapter) handleGet(u *tgbotapi.Update) (*tgbotapi.Message, error) {
 	if u.Message.CommandArguments() == "" {
-		return newHRError("Никнейм не передан!", domain.ErrBotBadRequest)
+		return nil, newHRError("Никнейм не передан!", domain.ErrBotBadRequest)
 	}
 
 	text, err := a.service.GetStatsMessage(u.Message.CommandArguments())
 	if err != nil {
 		if errors.Is(err, domain.ErrInternalWargaming) {
-			return newHRError("Ошибка при обращении к Wargaming API!", err)
+			return nil, newHRError("Ошибка при обращении к Wargaming API!", err)
 		}
 		if errors.Is(err, domain.ErrPlayerNotFound) {
-			return newHRError("Игрок с данным никнеймом не найден!", err)
+			return nil, newHRError("Игрок с данным никнеймом не найден!", err)
 		}
 		if errors.Is(err, domain.ErrInternalXVM) {
-			return newHRError("Ошибка при обращении к XVM!", err)
+			return nil, newHRError("Ошибка при обращении к XVM!", err)
 		}
 
-		return newHRError("Произошла неизвестная ошибка!", err)
+		return nil, newHRError("Произошла неизвестная ошибка!", err)
 	}
 
 	msg := tgbotapi.NewMessage(u.Message.Chat.ID, text)
 	msg.ParseMode = "HTML"
-	if _, err := a.botAPI.Send(msg); err != nil {
-		return newHRError("Невозможно отправить сообщение!", err)
+	sentMsg, err := a.botAPI.Send(msg)
+	if err != nil {
+		return nil, newHRError("Невозможно отправить сообщение!", err)
 	}
 
-	return nil
+	return &sentMsg, nil
 }
 
-func (a *adapter) handleSave(u *tgbotapi.Update) error {
+func (a *adapter) handleSave(u *tgbotapi.Update) (*tgbotapi.Message, error) {
 	if u.Message.CommandArguments() == "" {
-		return newHRError("Никнейм не передан!", domain.ErrBotBadRequest)
+		return nil, newHRError("Никнейм не передан!", domain.ErrBotBadRequest)
 	}
 
 	text, err := a.service.GetSaveNicknameMessage(u.Message.From.ID, u.Message.CommandArguments())
 	if err != nil {
 		if errors.Is(err, domain.ErrInternalWargaming) {
-			return newHRError("Ошибка при обращении к Wargaming API!", err)
+			return nil, newHRError("Ошибка при обращении к Wargaming API!", err)
 		}
 		if errors.Is(err, domain.ErrPlayerNotFound) {
-			return newHRError("Игрок с данным никнеймом не найден!", err)
+			return nil, newHRError("Игрок с данным никнеймом не найден!", err)
 		}
 		if errors.Is(err, domain.ErrInternalXVM) {
-			return newHRError("Ошибка при обращении к XVM!", err)
+			return nil, newHRError("Ошибка при обращении к XVM!", err)
 		}
 		if errors.Is(err, domain.ErrInternalDatabase) {
-			return newHRError("Ошибка при работе с базой! Обратитесь к администратору бота.", err)
+			return nil, newHRError("Ошибка при работе с базой! Обратитесь к администратору бота.", err)
 		}
 
-		return newHRError("Произошла неизвестная ошибка!", err)
+		return nil, newHRError("Произошла неизвестная ошибка!", err)
 	}
 
 	msg := tgbotapi.NewMessage(u.Message.Chat.ID, text)
 	msg.ParseMode = "HTML"
-	if _, err := a.botAPI.Send(msg); err != nil {
-		return newHRError("Невозможно отправить сообщение!", err)
+	sentMsg, err := a.botAPI.Send(msg)
+	if err != nil {
+		return nil, newHRError("Невозможно отправить сообщение!", err)
 	}
 
-	return nil
+	return &sentMsg, nil
 }
 
-func (a *adapter) handleRefresh(u *tgbotapi.Update) error {
+func (a *adapter) handleRefresh(u *tgbotapi.Update) (*tgbotapi.Message, error) {
 	text, err := a.service.GetRefreshMessage(u.Message.From.ID)
 	if err != nil {
 		if errors.Is(err, domain.ErrInternalXVM) {
-			return newHRError("Ошибка при обращении к XVM!", err)
+			return nil, newHRError("Ошибка при обращении к XVM!", err)
 		}
 		if errors.Is(err, domain.ErrNicknameNotSaved) {
-			return newHRError("Сначала сохрани свой никнейм!", err)
+			return nil, newHRError("Сначала сохрани свой никнейм!", err)
 		}
 		if errors.Is(err, domain.ErrInternalDatabase) {
-			return newHRError("Ошибка при работе с базой! Обратитесь к администратору бота.", err)
+			return nil, newHRError("Ошибка при работе с базой! Обратитесь к администратору бота.", err)
 		}
 
-		return newHRError("Произошла неизвестная ошибка!", err)
+		return nil, newHRError("Произошла неизвестная ошибка!", err)
 	}
 
 	msg := tgbotapi.NewMessage(u.Message.Chat.ID, text)
 	msg.ParseMode = "HTML"
-	if _, err := a.botAPI.Send(msg); err != nil {
-		return newHRError("Невозможно отправить сообщение!", err)
+	sentMsg, err := a.botAPI.Send(msg)
+	if err != nil {
+		return nil, newHRError("Невозможно отправить сообщение!", err)
 	}
 
-	return nil
+	return &sentMsg, nil
 }
 
-func (a *adapter) handleMe(u *tgbotapi.Update) error {
+func (a *adapter) handleMe(u *tgbotapi.Update) (*tgbotapi.Message, error) {
 	text, err := a.service.GetMeMessage(u.Message.From.ID)
 	if err != nil {
 		if errors.Is(err, domain.ErrTrendImageNotFound) {
-			return newHRError("График не найден!", err)
+			return nil, newHRError("График не найден!", err)
 		}
 		if errors.Is(err, domain.ErrInternalDatabase) {
-			return newHRError("Ошибка при работе с базой! Обратитесь к администратору бота.", err)
+			return nil, newHRError("Ошибка при работе с базой! Обратитесь к администратору бота.", err)
 		}
 
-		return newHRError("Произошла неизвестная ошибка!", err)
+		return nil, newHRError("Произошла неизвестная ошибка!", err)
 	}
 
 	msg := tgbotapi.NewMessage(u.Message.Chat.ID, text)
 	msg.ParseMode = "HTML"
-	if _, err := a.botAPI.Send(msg); err != nil {
-		return newHRError("Невозможно отправить сообщение!", err)
+	sentMsg, err := a.botAPI.Send(msg)
+	if err != nil {
+		return nil, newHRError("Невозможно отправить сообщение!", err)
 	}
 
-	return nil
+	return &sentMsg, nil
 }
 
-func (a *adapter) handleTrend(u *tgbotapi.Update) error {
+func (a *adapter) handleTrend(u *tgbotapi.Update) (*tgbotapi.Message, error) {
 	img, err := a.service.GetTrendImage(u.Message.From.ID, "#"+u.Message.Command())
 	if err != nil {
 		if errors.Is(err, domain.ErrNicknameNotSaved) {
-			return newHRError("Сначала сохрани свой никнейм!", err)
+			return nil, newHRError("Сначала сохрани свой никнейм!", err)
 		}
 		if errors.Is(err, domain.ErrInternalDatabase) {
-			return newHRError("Ошибка при работе с базой! Обратитесь к администратору бота.", err)
+			return nil, newHRError("Ошибка при работе с базой! Обратитесь к администратору бота.", err)
 		}
 
-		return newHRError("Произошла неизвестная ошибка!", err)
+		return nil, newHRError("Произошла неизвестная ошибка!", err)
 	}
 
 	msg := tgbotapi.NewPhotoUpload(u.Message.Chat.ID, tgbotapi.FileBytes{
 		Name:  u.Message.Command(),
 		Bytes: img,
 	})
-	if _, err := a.botAPI.Send(msg); err != nil {
-		return newHRError("Невозможно отправить сообщение!", err)
+	sentMsg, err := a.botAPI.Send(msg)
+	if err != nil {
+		return nil, newHRError("Невозможно отправить сообщение!", err)
 	}
 
-	return nil
+	return &sentMsg, nil
 }
 
-func (a *adapter) error(update *tgbotapi.Update, err error) {
+func (a *adapter) error(update *tgbotapi.Update, err error) *tgbotapi.Message {
 	if update == nil || err == nil {
 		// Why did you call this function?
-		return
+		return nil
 	}
 
 	// Log error
@@ -207,11 +223,28 @@ func (a *adapter) error(update *tgbotapi.Update, err error) {
 	// Send human readable representation of error to user to let him know
 	if hrerr, ok := err.(*hrError); ok {
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, hrerr.Human())
-		_, err := a.botAPI.Send(msg)
+		sentMsg, err := a.botAPI.Send(msg)
 		if err != nil {
 			a.logger.Error("Error sending message with human readable error!", zap.Error(err))
+			return nil
 		}
-	} else {
-		// ... do nothing? Unreadable error useless for people
+
+		return &sentMsg
+	}
+
+	return nil
+}
+
+func (a *adapter) deleteMessage(chatID int64, messageID int) {
+	if _, err := a.botAPI.DeleteMessage(tgbotapi.DeleteMessageConfig{
+		ChatID:    chatID,
+		MessageID: messageID,
+	}); err != nil {
+		a.logger.Error(
+			"Error deleting the message!",
+			zap.Int64("chat_id", chatID),
+			zap.Int("message_id", messageID),
+			zap.Error(err),
+		)
 	}
 }

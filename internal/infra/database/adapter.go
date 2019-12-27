@@ -147,7 +147,7 @@ func (a *adapter) UpdateStatsByUserID(userID int, stats []*domain.Stat) ([]*doma
 	}
 
 	_, err = tx.NamedExec(
-		`INSERT INTO stats (user_id, name, value, html_id, trend_img) VALUES (:user_id, :name, :value, :html_id, :trend_img)`,
+		`INSERT INTO stats (user_id, type, name, value, html_id, img) VALUES (:user_id, :type, :name, :value, :html_id, :img)`,
 		stats,
 	)
 	if err != nil {

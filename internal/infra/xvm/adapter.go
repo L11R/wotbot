@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/L11R/wotbot/internal/domain"
@@ -60,10 +61,37 @@ func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error
 			return
 		}
 
+		name := selection.Find(".h5").Text()
+		value := selection.Find(".h2").Text()
+
 		ss = append(ss, &domain.Stat{
+			Type:   domain.TrendStat,
+			Name:   name,
+			Value:  &value,
 			HtmlID: id,
-			Name:   selection.Find(".h5").Text(),
-			Value:  selection.Find(".h2").Text(),
+		})
+	})
+
+	// Silly, but working way; Feel free to suggest proper solution
+	doc.Find("#battlesByVehicleType").Parent().Parent().Find("div").Each(func(i int, selection *goquery.Selection) {
+		id, ok := selection.Find("canvas").Attr("id")
+		if !ok {
+			return
+		}
+		id = "#" + id
+
+		// Parse chart title from JS script
+		r := regexp.MustCompile(`text: "(.+)"`)
+		match := r.FindStringSubmatch(selection.Find("script").Text())
+		if len(match) != 2 {
+			return
+		}
+		name := match[1]
+
+		ss = append(ss, &domain.Stat{
+			Type:   domain.VehicleStat,
+			Name:   name,
+			HtmlID: id,
 		})
 	})
 
@@ -75,7 +103,7 @@ func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error
 		for i := range ss {
 			tt = append(
 				tt,
-				chromedp.Screenshot(ss[i].HtmlID, &ss[i].TrendImage, chromedp.NodeVisible, chromedp.ByID),
+				chromedp.Screenshot(ss[i].HtmlID, &ss[i].Image, chromedp.NodeVisible, chromedp.ByID),
 			)
 		}
 

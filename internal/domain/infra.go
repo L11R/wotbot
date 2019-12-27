@@ -2,9 +2,8 @@ package domain
 
 import (
 	"fmt"
-	"strings"
-
 	"go.uber.org/zap"
+	"strings"
 )
 
 type Service interface {
@@ -61,7 +60,7 @@ func (s *service) GetCreateUserMessage(telegramID int) (string, error) {
 	msg := `Привет.
 
 Команды:
-/get <i>nickname</i> — выводит статистику любого игрока.
+/get <i>nickname</i> — запрашивает и отображает статистику игрока.
 /save <i>nickname</i> — позволяет сохранить свой никнейм.
 /me — выводит расширенную статистику по сохранённому никнейму.
 /refresh — обновляет кэш.`
@@ -159,9 +158,17 @@ func (s *service) GetMeMessage(telegramID int) (string, error) {
 		return "", ErrNicknameNotSaved
 	}
 
-	msg := fmt.Sprintf("<b>Игрок:</b> %s\n", *user.Nickname)
+	msg := fmt.Sprintf("<b>Игрок:</b> %s\n\n", *user.Nickname)
 	for _, s := range ss {
-		msg += fmt.Sprintf("<b>%s:</b> %s %s\n", s.Name, s.Value, strings.Replace(s.HtmlID, "#", "/", 1))
+		if s.Value != nil {
+			msg += fmt.Sprintf("<b>%s:</b> %s %s\n", s.Name, *s.Value, strings.Replace(s.HtmlID, "#", "/", 1))
+		}
+	}
+	msg += "\n<b>Техника:</b>\n"
+	for _, s := range ss {
+		if s.Value == nil {
+			msg += fmt.Sprintf("<b>%s:</b> %s\n", s.Name, strings.Replace(s.HtmlID, "#", "/", 1))
+		}
 	}
 
 	return msg, nil
@@ -182,7 +189,7 @@ func (s *service) GetTrendImage(telegramID int, htmlID string) ([]byte, error) {
 
 	for i := range ss {
 		if ss[i].HtmlID == htmlID {
-			return ss[i].TrendImage, nil
+			return ss[i].Image, nil
 		}
 	}
 
@@ -202,9 +209,15 @@ func (s *service) GetStatsMessage(nickname string) (string, error) {
 		return "", err
 	}
 
-	msg := fmt.Sprintf("<b>Игрок:</b> %s\n", nickname)
+	msg := fmt.Sprintf("<b>Игрок:</b> %s\n\n", nickname)
 	for _, s := range ss {
-		msg += fmt.Sprintf("<b>%s:</b> %s\n", s.Name, s.Value)
+		if s.Value != nil {
+			msg += fmt.Sprintf("<b>%s:</b> %s\n", s.Name, *s.Value)
+		}
+	}
+
+	if len(ss) == 0 {
+		msg += fmt.Sprintf("Показатели на найдены.")
 	}
 
 	return msg, nil
