@@ -93,6 +93,10 @@ func (a *adapter) handleGet(u *tgbotapi.Update) error {
 }
 
 func (a *adapter) handleSave(u *tgbotapi.Update) error {
+	if u.Message.CommandArguments() == "" {
+		return newHRError("Никнейм не передан!", domain.ErrBotBadRequest)
+	}
+
 	text, err := a.service.GetSaveNicknameMessage(u.Message.From.ID, u.Message.CommandArguments())
 	if err != nil {
 		if errors.Is(err, domain.ErrInternalWargaming) {
