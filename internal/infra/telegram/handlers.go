@@ -20,18 +20,25 @@ func (a *adapter) route(u *tgbotapi.Update) {
 	)
 
 	defer func(err *error) {
+		if r := recover(); r != nil {
+			a.logger.Error("panic recoved!", zap.Any("panic", r))
+			return
+		}
+
 		if err != nil && *err != nil {
 			sentMsg = a.error(u, *err)
 		}
 
 		if u.Message.Chat.Type == "supergroup" {
 			// Pass copies to goroutine
-			go func(update tgbotapi.Update, msg tgbotapi.Message) {
-				ticker := time.NewTicker(10 * time.Second)
-				<-ticker.C
-				a.deleteMessage(update.Message.Chat.ID, update.Message.MessageID)
-				a.deleteMessage(msg.Chat.ID, msg.MessageID)
-			}(*u, *sentMsg)
+			if u != nil && sentMsg != nil {
+				go func(update tgbotapi.Update, msg tgbotapi.Message) {
+					ticker := time.NewTicker(10 * time.Second)
+					<-ticker.C
+					a.deleteMessage(update.Message.Chat.ID, update.Message.MessageID)
+					a.deleteMessage(msg.Chat.ID, msg.MessageID)
+				}(*u, *sentMsg)
+			}
 		}
 	}(&err)
 
