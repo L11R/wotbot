@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/chromedp/chromedp"
+	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/L11R/wotbot/internal/domain"
@@ -98,10 +100,23 @@ func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error
 }
 
 func (a *adapter) getWebSocketDebuggerURL() (string, error) {
-	// Request
-	req, err := http.NewRequest(http.MethodGet, a.config.ChromeDevtoolsURL, nil)
+	// Chrome could not resolve local docker service name :\
+	u, err := url.Parse(a.config.ChromeDevtoolsURL)
+	if err != nil {
+		a.logger.Error("Error parsing Chrome Devtools URL!", zap.Error(err))
+		return "", domain.ErrInternalXVM
+	}
+	tcpAddr, err := net.ResolveTCPAddr("tcp", u.Host)
+	if err != nil {
+		a.logger.Error("Error resolving Chrome Devtools host!", zap.Error(err))
+		return "", domain.ErrInternalXVM
+	}
+	u.Host = tcpAddr.String()
+
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		a.logger.Error("Error creating new Chrome Devtools request!", zap.Error(err))
+		return "", domain.ErrInternalXVM
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
