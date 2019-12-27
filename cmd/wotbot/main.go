@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/L11R/wotbot/internal/infra/database"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/L11R/wotbot/internal/infra/database"
 
 	"github.com/L11R/wotbot/internal/configs"
 	"github.com/L11R/wotbot/internal/domain"

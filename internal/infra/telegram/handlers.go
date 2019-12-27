@@ -2,11 +2,12 @@ package telegram
 
 import (
 	"errors"
+	"strings"
+	"time"
+
 	"github.com/L11R/wotbot/internal/domain"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"go.uber.org/zap"
-	"strings"
-	"time"
 )
 
 func (a *adapter) route(u *tgbotapi.Update) {

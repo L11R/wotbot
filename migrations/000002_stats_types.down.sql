@@ -1,3 +1,6 @@
-ALTER TABLE stats RENAME COLUMN img TO trend_img;
-ALTER TABLE stats DROP COLUMN type;
-ALTER TABLE stats ALTER COLUMN value SET NOT NULL;
+ALTER TABLE stats
+    RENAME COLUMN img TO trend_img;
+ALTER TABLE stats
+    DROP COLUMN type;
+ALTER TABLE stats
+    ALTER COLUMN value SET NOT NULL;

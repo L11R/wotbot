@@ -20,7 +20,7 @@ type Error struct {
 
 func (e *Error) Error() string {
 	return fmt.Sprintf(
-		"code: %s; message: %s; field: %s; value: %s",
+		"code: %d; message: %s; field: %s; value: %s",
 		e.Code,
 		e.Message,
 		e.Field,

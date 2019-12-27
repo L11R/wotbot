@@ -46,6 +46,7 @@ func (a *adapter) FindPlayer(nickname string) (string, int, error) {
 		a.logger.Error("Error doing Wargaming API request!", zap.Error(err))
 		return "", 0, domain.ErrInternalWargaming
 	}
+	//noinspection GoUnhandledErrorResult
 	defer resp.Body.Close()
 
 	var apiResp Response

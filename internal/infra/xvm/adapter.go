@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/chromedp/chromedp"
 	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"time"
+
+	"github.com/chromedp/chromedp"
 
 	"github.com/L11R/wotbot/internal/domain"
 	"github.com/PuerkitoBio/goquery"
@@ -30,6 +31,7 @@ func NewAdapter(logger *zap.Logger, config *Config) domain.XVM {
 	return a
 }
 
+//noinspection GoUnhandledErrorResult
 func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error) {
 	req, err := http.NewRequest(http.MethodGet, "https://stats.modxvm.com/ru/stat/players/"+fmt.Sprint(accountID), nil)
 	if err != nil {
@@ -156,6 +158,7 @@ func (a *adapter) getWebSocketDebuggerURL() (string, error) {
 		a.logger.Error("Error doing XVM stats request!", zap.Error(err))
 		return "", domain.ErrInternalXVM
 	}
+	//noinspection GoUnhandledErrorResult
 	defer resp.Body.Close()
 
 	var target []struct {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/L11R/wotbot/internal/domain"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -82,6 +83,7 @@ ON CONFLICT (telegram_id) DO UPDATE SET nickname = COALESCE(EXCLUDED.nickname, u
 		a.logger.Error("Error upserting user!", zap.Error(err))
 		return nil, domain.ErrInternalDatabase
 	}
+	//noinspection GoUnhandledErrorResult
 	defer rows.Close()
 
 	for rows.Next() {
@@ -104,6 +106,7 @@ func (a *adapter) GetStatsByUserID(userID int) ([]*domain.Stat, error) {
 		a.logger.Error("Error selecting stats!", zap.Error(err))
 		return nil, domain.ErrInternalDatabase
 	}
+	//noinspection GoUnhandledErrorResult
 	defer rows.Close()
 
 	results := make([]*domain.Stat, 0)
@@ -166,6 +169,7 @@ func (a *adapter) UpdateStatsByUserID(userID int, stats []*domain.Stat) ([]*doma
 		a.logger.Error("Error selecting stats!", zap.Error(err))
 		return nil, domain.ErrInternalDatabase
 	}
+	//noinspection GoUnhandledErrorResult
 	defer rows.Close()
 
 	results := make([]*domain.Stat, 0)

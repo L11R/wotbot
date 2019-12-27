@@ -1,12 +1,12 @@
 package configs
 
 import (
-	"github.com/L11R/wotbot/internal/infra/database"
-	"github.com/L11R/wotbot/internal/infra/xvm"
 	"os"
 
+	"github.com/L11R/wotbot/internal/infra/database"
 	"github.com/L11R/wotbot/internal/infra/telegram"
 	"github.com/L11R/wotbot/internal/infra/wargaming"
+	"github.com/L11R/wotbot/internal/infra/xvm"
 	"github.com/jessevdk/go-flags"
 )
 

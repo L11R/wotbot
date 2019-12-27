@@ -2,8 +2,9 @@ package domain
 
 import (
 	"fmt"
-	"go.uber.org/zap"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 type Service interface {
