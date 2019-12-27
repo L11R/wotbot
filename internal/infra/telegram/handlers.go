@@ -3,7 +3,7 @@ package telegram
 import (
 	"errors"
 	"github.com/L11R/wotbot/internal/domain"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"go.uber.org/zap"
 	"strings"
 	"time"
