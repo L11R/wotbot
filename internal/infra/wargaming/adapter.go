@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/L11R/wotbot/internal/domain"
 	"go.uber.org/zap"
@@ -32,7 +31,7 @@ func (a *adapter) FindPlayer(nickname string) (string, int, error) {
 		return "", 0, domain.ErrInternalWargaming
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), a.config.HTTPTimeout)
 	defer cancel()
 	req = req.WithContext(ctx)
 

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"time"
 
 	"github.com/chromedp/chromedp"
 
@@ -39,7 +38,7 @@ func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error
 		return nil, domain.ErrInternalXVM
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), a.config.HTTPTimeout)
 	defer cancel()
 	req = req.WithContext(ctx)
 
@@ -109,7 +108,7 @@ func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error
 			)
 		}
 
-		timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), a.config.DevtoolsTimeout)
 		defer cancel()
 		debuggerURL, err := a.getWebSocketDebuggerURL()
 		if err != nil {
@@ -149,7 +148,7 @@ func (a *adapter) getWebSocketDebuggerURL() (string, error) {
 		return "", domain.ErrInternalXVM
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), a.config.DevtoolsTimeout)
 	defer cancel()
 	req = req.WithContext(ctx)
 
