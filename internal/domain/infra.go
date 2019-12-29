@@ -11,7 +11,7 @@ type Service interface {
 	GetCreateUserMessage(telegramID int) (string, error)
 	GetSaveNicknameMessage(telegramID int, nickname string) (string, error)
 	GetRefreshMessage(telegramID int) (string, error)
-	GetMeMessage(telegramID int) (string, error)
+	GetMeMessage(telegramID int, chatType string) (string, error)
 	GetTrendImage(telegramID int, htmlID string) ([]byte, error)
 	GetStatsMessage(nickname string) (string, error)
 }
@@ -141,7 +141,7 @@ func (s *service) GetRefreshMessage(telegramID int) (string, error) {
 	return "Статистика обновлена!", nil
 }
 
-func (s *service) GetMeMessage(telegramID int) (string, error) {
+func (s *service) GetMeMessage(telegramID int, chatType string) (string, error) {
 	user, err := s.database.GetUserByTelegramID(telegramID)
 	if err != nil {
 		s.logger.Error("Error getting user!", zap.Int("telegram_id", telegramID), zap.Error(err))
@@ -154,21 +154,28 @@ func (s *service) GetMeMessage(telegramID int) (string, error) {
 		return "", err
 	}
 
-	if user.Nickname == nil {
-		s.logger.Error("User nickname is null, he didn't save nickname!")
+	if user.Nickname == nil || user.WargamingID == nil {
+		s.logger.Error("User nickname or Wargaming ID are null, he didn't save nickname!")
 		return "", ErrNicknameNotSaved
 	}
 
-	msg := fmt.Sprintf("<b>Игрок:</b> %s\n\n", *user.Nickname)
+	msg := fmt.Sprintf("<b>Игрок:</b> %s <a href=\"https://stats.modxvm.com/ru/stat/players/%d\">(на сайте)</a>\n\n", *user.Nickname, *user.WargamingID)
 	for _, s := range ss {
 		if s.Value != nil {
-			msg += fmt.Sprintf("<b>%s:</b> %s %s\n", s.Name, *s.Value, strings.Replace(s.HtmlID, "#", "/", 1))
+			if chatType == "private" {
+				msg += fmt.Sprintf("<b>%s:</b> %s %s\n", s.Name, *s.Value, strings.Replace(s.HtmlID, "#", "/", 1))
+			} else {
+				msg += fmt.Sprintf("<b>%s:</b> %s\n", s.Name, *s.Value)
+			}
 		}
 	}
-	msg += "\n<b>Техника:</b>\n"
-	for _, s := range ss {
-		if s.Value == nil {
-			msg += fmt.Sprintf("<b>%s:</b> %s\n", s.Name, strings.Replace(s.HtmlID, "#", "/", 1))
+
+	if chatType == "private" {
+		msg += "\n<b>Техника:</b>\n"
+		for _, s := range ss {
+			if s.Value == nil {
+				msg += fmt.Sprintf("<b>%s:</b> %s\n", s.Name, strings.Replace(s.HtmlID, "#", "/", 1))
+			}
 		}
 	}
 
