@@ -172,7 +172,7 @@ func (a *adapter) handleRefresh(u *tgbotapi.Update) (*tgbotapi.Message, error) {
 }
 
 func (a *adapter) handleMe(u *tgbotapi.Update) (*tgbotapi.Message, error) {
-	text, err := a.service.GetMeMessage(u.Message.From.ID)
+	text, err := a.service.GetMeMessage(u.Message.From.ID, u.Message.Chat.Type)
 	if err != nil {
 		if errors.Is(err, domain.ErrTrendImageNotFound) {
 			return nil, newHRError("График не найден!", err)
