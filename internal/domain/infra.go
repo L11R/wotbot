@@ -217,7 +217,7 @@ func (s *service) GetStatsMessage(nickname string) (string, error) {
 		return "", err
 	}
 
-	msg := fmt.Sprintf("<b>Игрок:</b> %s\n\n", nickname)
+	msg := fmt.Sprintf("<b>Игрок:</b> %s <a href=\"https://stats.modxvm.com/ru/stat/players/%d\">(на сайте)</a>\n\n", nickname, accountID)
 	for _, s := range ss {
 		if s.Value != nil {
 			msg += fmt.Sprintf("<b>%s:</b> %s\n", s.Name, *s.Value)
