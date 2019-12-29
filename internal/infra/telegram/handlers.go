@@ -34,7 +34,7 @@ func (a *adapter) route(u *tgbotapi.Update) {
 			// Pass copies to goroutine
 			if u != nil && sentMsg != nil {
 				go func(update tgbotapi.Update, msg tgbotapi.Message) {
-					ticker := time.NewTicker(10 * time.Second)
+					ticker := time.NewTicker(a.config.AutoDeleting)
 					<-ticker.C
 					a.deleteMessage(update.Message.Chat.ID, update.Message.MessageID)
 					a.deleteMessage(msg.Chat.ID, msg.MessageID)
