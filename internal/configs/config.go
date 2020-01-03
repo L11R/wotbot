@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/L11R/wotbot/internal/infra/database"
+	"github.com/L11R/wotbot/internal/infra/kttc"
 	"github.com/L11R/wotbot/internal/infra/telegram"
 	"github.com/L11R/wotbot/internal/infra/wargaming"
 	"github.com/L11R/wotbot/internal/infra/xvm"
@@ -15,6 +16,7 @@ type Config struct {
 	Telegram  *telegram.Config  `group:"Telegram args" namespace:"telegram" env-namespace:"WOT_TELEGRAM"`
 	Wargaming *wargaming.Config `group:"Wargaming args" namespace:"wargaming" env-namespace:"WOT_WARGAMING"`
 	XVM       *xvm.Config       `group:"XVM args" namespace:"xvm" env-namespace:"WOT_XVM"`
+	KTTC      *kttc.Config      `group:"KTTC args" namespace:"kttc" env-namespace:"WOT_KTTC"`
 
 	Verbose []bool `short:"v" long:"verbose" env:"WOT_VERBOSE" description:"Verbose logs"`
 }

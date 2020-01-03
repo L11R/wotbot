@@ -11,21 +11,28 @@ type User struct {
 	UpdatedAt   *time.Time `db:"updated_at"`
 }
 
-type StatType string
+type XVMStatType string
 
 const (
-	TrendStat   StatType = "trend"
-	VehicleStat StatType = "vehicle"
+	XVMTrendStat   XVMStatType = "trend"
+	XVMVehicleStat XVMStatType = "vehicle"
 )
 
-type Stat struct {
-	ID        int        `db:"id"`
-	UserID    int        `db:"user_id"`
-	Type      StatType   `db:"type"`
-	Name      string     `db:"name"`
-	Value     *string    `db:"value"`
-	HtmlID    string     `db:"html_id"`
-	Image     []byte     `db:"img"`
-	CreatedAt time.Time  `db:"created_at"`
-	UpdatedAt *time.Time `db:"updated_at"`
+type XVMStat struct {
+	ID        int         `db:"id"`
+	UserID    int         `db:"user_id"`
+	Type      XVMStatType `db:"type"`
+	Name      string      `db:"name"`
+	Value     *string     `db:"value"`
+	HtmlID    string      `db:"html_id"`
+	Image     []byte      `db:"img"`
+	CreatedAt time.Time   `db:"created_at"`
+	UpdatedAt *time.Time  `db:"updated_at"`
+}
+
+type KTTCStat struct {
+	Name  string
+	Value float64
+	Color string
+	Delta *float64
 }

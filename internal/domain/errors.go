@@ -9,6 +9,8 @@ var (
 	ErrInternalWargaming = fmt.Errorf("internal Wargaming API error")
 	// Error that could occur during XVM stats call
 	ErrInternalXVM = fmt.Errorf("internal XVM stats error")
+	// Error that could occur during KTTC stats call
+	ErrInternalKTTC = fmt.Errorf("internal KTTC stats error")
 	// Error that occurs if user passed wrong data on input
 	ErrBotBadRequest = fmt.Errorf("bot bad request")
 	// Error that occurs if player not found

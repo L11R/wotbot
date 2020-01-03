@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/L11R/wotbot/internal/infra/database"
+	"github.com/L11R/wotbot/internal/infra/kttc"
 
 	"github.com/L11R/wotbot/internal/configs"
 	"github.com/L11R/wotbot/internal/domain"
@@ -46,8 +47,9 @@ func main() {
 	}
 	ws := wargaming.NewAdapter(logger, config.Wargaming)
 	x := xvm.NewAdapter(logger, config.XVM)
+	k := kttc.NewAdapter(logger, config.KTTC)
 
-	service := domain.NewService(logger, db, ws, x)
+	service := domain.NewService(logger, db, ws, x, k)
 
 	ts, err := telegram.NewAdapter(logger, config.Telegram, service)
 	if err != nil {

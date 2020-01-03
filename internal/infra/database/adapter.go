@@ -100,7 +100,7 @@ ON CONFLICT (telegram_id) DO UPDATE SET nickname = COALESCE(EXCLUDED.nickname, u
 	return nil, domain.ErrInternalDatabase
 }
 
-func (a *adapter) GetStatsByUserID(userID int) ([]*domain.Stat, error) {
+func (a *adapter) GetStatsByUserID(userID int) ([]*domain.XVMStat, error) {
 	rows, err := a.db.Queryx(`SELECT * FROM stats WHERE user_id = $1`, userID)
 	if err != nil {
 		a.logger.Error("Error selecting stats!", zap.Error(err))
@@ -109,9 +109,9 @@ func (a *adapter) GetStatsByUserID(userID int) ([]*domain.Stat, error) {
 	//noinspection GoUnhandledErrorResult
 	defer rows.Close()
 
-	results := make([]*domain.Stat, 0)
+	results := make([]*domain.XVMStat, 0)
 	for rows.Next() {
-		var res domain.Stat
+		var res domain.XVMStat
 		if err := rows.StructScan(&res); err != nil {
 			a.logger.Error("Error scanning result!", zap.Error(err))
 			return nil, domain.ErrInternalDatabase
@@ -123,7 +123,7 @@ func (a *adapter) GetStatsByUserID(userID int) ([]*domain.Stat, error) {
 	return results, nil
 }
 
-func (a *adapter) UpdateStatsByUserID(userID int, stats []*domain.Stat) ([]*domain.Stat, error) {
+func (a *adapter) UpdateStatsByUserID(userID int, stats []*domain.XVMStat) ([]*domain.XVMStat, error) {
 	tx, err := a.db.BeginTxx(context.Background(), nil)
 	if err != nil {
 		a.logger.Error("Error beginning database transaction!", zap.Error(err))
@@ -172,9 +172,9 @@ func (a *adapter) UpdateStatsByUserID(userID int, stats []*domain.Stat) ([]*doma
 	//noinspection GoUnhandledErrorResult
 	defer rows.Close()
 
-	results := make([]*domain.Stat, 0)
+	results := make([]*domain.XVMStat, 0)
 	for rows.Next() {
-		var res domain.Stat
+		var res domain.XVMStat
 		if err := rows.StructScan(&res); err != nil {
 			a.logger.Error("Error scanning result!", zap.Error(err))
 			return nil, domain.ErrInternalDatabase

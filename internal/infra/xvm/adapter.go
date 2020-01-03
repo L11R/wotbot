@@ -31,7 +31,7 @@ func NewAdapter(logger *zap.Logger, config *Config) domain.XVM {
 }
 
 //noinspection GoUnhandledErrorResult
-func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error) {
+func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.XVMStat, error) {
 	req, err := http.NewRequest(http.MethodGet, "https://stats.modxvm.com/ru/stat/players/"+fmt.Sprint(accountID), nil)
 	if err != nil {
 		a.logger.Error("Error creating new XVM stats request!", zap.Error(err))
@@ -55,7 +55,7 @@ func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error
 		return nil, domain.ErrInternalXVM
 	}
 
-	var ss []*domain.Stat
+	var ss []*domain.XVMStat
 	doc.Find(".stats-summary a").Each(func(i int, selection *goquery.Selection) {
 		id, ok := selection.Attr("href")
 		if !ok {
@@ -65,8 +65,8 @@ func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error
 		name := selection.Find(".h5").Text()
 		value := selection.Find(".h2").Text()
 
-		ss = append(ss, &domain.Stat{
-			Type:   domain.TrendStat,
+		ss = append(ss, &domain.XVMStat{
+			Type:   domain.XVMTrendStat,
 			Name:   name,
 			Value:  &value,
 			HtmlID: id,
@@ -89,8 +89,8 @@ func (a *adapter) GetStats(accountID int, withTrend bool) ([]*domain.Stat, error
 		}
 		name := match[1]
 
-		ss = append(ss, &domain.Stat{
-			Type:   domain.VehicleStat,
+		ss = append(ss, &domain.XVMStat{
+			Type:   domain.XVMVehicleStat,
 			Name:   name,
 			HtmlID: id,
 		})

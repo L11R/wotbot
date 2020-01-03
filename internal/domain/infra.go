@@ -14,6 +14,7 @@ type Service interface {
 	GetMeMessage(telegramID int, chatType string) (string, error)
 	GetTrendImage(telegramID int, htmlID string) ([]byte, error)
 	GetStatsMessage(nickname string) (string, error)
+	GetKTTCStatsMessage(nickname string) (string, error)
 }
 
 type Wargaming interface {
@@ -21,14 +22,18 @@ type Wargaming interface {
 }
 
 type XVM interface {
-	GetStats(accountID int, withTrend bool) ([]*Stat, error)
+	GetStats(accountID int, withTrend bool) ([]*XVMStat, error)
+}
+
+type KTTC interface {
+	GetStats(accountID int) ([]*KTTCStat, error)
 }
 
 type Database interface {
 	GetUserByTelegramID(telegramID int) (*User, error)
 	UpsertUser(user *User) (*User, error)
-	GetStatsByUserID(userID int) ([]*Stat, error)
-	UpdateStatsByUserID(userID int, stats []*Stat) ([]*Stat, error)
+	GetStatsByUserID(userID int) ([]*XVMStat, error)
+	UpdateStatsByUserID(userID int, stats []*XVMStat) ([]*XVMStat, error)
 }
 
 type service struct {
@@ -36,14 +41,16 @@ type service struct {
 	database  Database
 	wargaming Wargaming
 	xvm       XVM
+	kttc      KTTC
 }
 
-func NewService(logger *zap.Logger, database Database, wargaming Wargaming, xvm XVM) Service {
+func NewService(logger *zap.Logger, database Database, wargaming Wargaming, xvm XVM, kttc KTTC) Service {
 	s := &service{
 		logger:    logger,
 		database:  database,
 		wargaming: wargaming,
 		xvm:       xvm,
+		kttc:      kttc,
 	}
 
 	return s
@@ -159,7 +166,7 @@ func (s *service) GetMeMessage(telegramID int, chatType string) (string, error) 
 		return "", ErrNicknameNotSaved
 	}
 
-	msg := fmt.Sprintf("<b>Игрок:</b> %s <a href=\"https://stats.modxvm.com/ru/stat/players/%d\">(на сайте)</a>\n\n", *user.Nickname, *user.WargamingID)
+	msg := fmt.Sprintf("<b>Игрок:</b> %s <a href=\"https://stats.modxvm.com/ru/stat/players/%d\">(на сайте XVM)</a>\n\n", *user.Nickname, *user.WargamingID)
 	for _, s := range ss {
 		if s.Value != nil {
 			if chatType == "private" {
@@ -217,7 +224,7 @@ func (s *service) GetStatsMessage(nickname string) (string, error) {
 		return "", err
 	}
 
-	msg := fmt.Sprintf("<b>Игрок:</b> %s <a href=\"https://stats.modxvm.com/ru/stat/players/%d\">(на сайте)</a>\n\n", nickname, accountID)
+	msg := fmt.Sprintf("<b>Игрок:</b> %s <a href=\"https://stats.modxvm.com/ru/stat/players/%d\">(на сайте XVM)</a>\n\n", nickname, accountID)
 	for _, s := range ss {
 		if s.Value != nil {
 			msg += fmt.Sprintf("<b>%s:</b> %s\n", s.Name, *s.Value)
@@ -226,6 +233,36 @@ func (s *service) GetStatsMessage(nickname string) (string, error) {
 
 	if len(ss) == 0 {
 		msg += fmt.Sprintf("Показатели на найдены.")
+	}
+
+	return msg, nil
+}
+
+func (s *service) GetKTTCStatsMessage(nickname string) (string, error) {
+	nickname, accountID, err := s.wargaming.FindPlayer(nickname)
+	if err != nil {
+		s.logger.Error("Error getting account_id!", zap.String("nickname", nickname), zap.Error(err))
+		return "", err
+	}
+
+	ss, err := s.kttc.GetStats(accountID)
+	if err != nil {
+		s.logger.Error("Error getting stats!", zap.Error(err))
+		return "", err
+	}
+
+	msg := fmt.Sprintf("<b>Игрок:</b> %[1]s <a href=\"https://kttc.ru/wot/ru/user/%[1]s/\">(на сайте KTTC)</a>\n\n", nickname)
+	msg += "<b>Статистика за последнюю тысячу боёв:</b>\n"
+	for _, s := range ss {
+		if s.Delta != nil {
+			if *s.Delta > 0 {
+				msg += fmt.Sprintf("<b>%s:</b> %s %0.2f (+%0.2f)\n", s.Name, s.Color, s.Value, *s.Delta)
+			} else {
+				msg += fmt.Sprintf("<b>%s:</b> %s %0.2f (%0.2f)\n", s.Name, s.Color, s.Value, *s.Delta)
+			}
+		} else {
+			msg += fmt.Sprintf("<b>%s:</b> %s %0.2f\n", s.Name, s.Color, s.Value)
+		}
 	}
 
 	return msg, nil

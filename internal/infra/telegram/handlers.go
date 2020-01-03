@@ -54,6 +54,8 @@ func (a *adapter) route(u *tgbotapi.Update) {
 		sentMsg, err = a.handleMe(u)
 	case "refresh":
 		sentMsg, err = a.handleRefresh(u)
+	case "kttc":
+		sentMsg, err = a.handleKTTC(u)
 	default:
 		if strings.HasSuffix(u.Message.Command(), "Trend") ||
 			strings.Contains(u.Message.Command(), "ByVehicle") {
@@ -104,6 +106,37 @@ func (a *adapter) handleGet(u *tgbotapi.Update) (*tgbotapi.Message, error) {
 
 	msg := tgbotapi.NewMessage(u.Message.Chat.ID, text)
 	msg.ParseMode = "HTML"
+	sentMsg, err := a.botAPI.Send(msg)
+	if err != nil {
+		return nil, newHRError("Невозможно отправить сообщение!", err)
+	}
+
+	return &sentMsg, nil
+}
+
+func (a *adapter) handleKTTC(u *tgbotapi.Update) (*tgbotapi.Message, error) {
+	if u.Message.CommandArguments() == "" {
+		return nil, newHRError("Никнейм не передан!", domain.ErrBotBadRequest)
+	}
+
+	text, err := a.service.GetKTTCStatsMessage(u.Message.CommandArguments())
+	if err != nil {
+		if errors.Is(err, domain.ErrInternalWargaming) {
+			return nil, newHRError("Ошибка при обращении к Wargaming API!", err)
+		}
+		if errors.Is(err, domain.ErrPlayerNotFound) {
+			return nil, newHRError("Игрок с данным никнеймом не найден!", err)
+		}
+		if errors.Is(err, domain.ErrInternalKTTC) {
+			return nil, newHRError("Ошибка при обращении к KTTC!", err)
+		}
+
+		return nil, newHRError("Произошла неизвестная ошибка!", err)
+	}
+
+	msg := tgbotapi.NewMessage(u.Message.Chat.ID, text)
+	msg.ParseMode = "HTML"
+	msg.DisableWebPagePreview = true
 	sentMsg, err := a.botAPI.Send(msg)
 	if err != nil {
 		return nil, newHRError("Невозможно отправить сообщение!", err)
