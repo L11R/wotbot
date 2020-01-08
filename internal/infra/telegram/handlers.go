@@ -36,8 +36,9 @@ func (a *adapter) route(u *tgbotapi.Update) {
 				go func(update tgbotapi.Update, msg tgbotapi.Message) {
 					ticker := time.NewTicker(a.config.AutoDeleting)
 					<-ticker.C
+					// Real world cases show that deleting bot response is bad behaviour
 					a.deleteMessage(update.Message.Chat.ID, update.Message.MessageID)
-					a.deleteMessage(msg.Chat.ID, msg.MessageID)
+					// a.deleteMessage(msg.Chat.ID, msg.MessageID)
 				}(*u, *sentMsg)
 			}
 		}
