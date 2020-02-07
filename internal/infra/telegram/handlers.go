@@ -30,7 +30,7 @@ func (a *adapter) route(u *tgbotapi.Update) {
 			sentMsg = a.error(u, *err)
 		}
 
-		if u.Message.Chat.Type == "supergroup" {
+		if u.Message.Chat != nil && u.Message.Chat.Type == "supergroup" {
 			// Pass copies to goroutine
 			if u != nil && sentMsg != nil {
 				go func(update tgbotapi.Update, msg tgbotapi.Message) {
